@@ -1,0 +1,95 @@
+---
+
+ - name:  install epel-release
+   yum: name=epel-release  state=latest
+   
+# - name: Install epel-release rpm
+#   yum: name=http://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm state=latest
+#   when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '6'
+ 
+ - name: Install epel-release rpm
+   yum: name=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+ #  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+ - name: Install nrpe
+   yum: name=nagios-plugins-nrpe state=latest
+
+ - name: Install nagios-plugins
+   yum: name=nagios-plugins state=latest
+   
+ - name: Install nagios-plugins-users
+   yum: name=nagios-plugins-users state=latest
+
+ - name: Install nagios-plugins-load
+   yum: name=nagios-plugins-load state=latest
+
+ - name: Install nagios-plugins-swap
+   yum: name=nagios-plugins-swap state=latest
+ 
+ - name: Install  nagios-plugins-disk
+   yum: name=nagios-plugins-disk state=latest
+
+ - name: Install nagios-plugins-procs
+   yum: name=nagios-plugins-procs state=latest
+
+ - name: copy nrpe.cfg
+   copy:
+    src: check_nrpe 
+    dest: /usr/lib64/nagios/plugins
+    mode: a+x
+
+ - name: copy commands.cfg
+   copy:
+    src: op5_commands.cfg 
+    dest: /etc/nrpe.d/op5_commands.cfg
+
+ - name: replace server address 
+   replace:
+    path: /etc/nagios/nrpe.cfg
+    regexp: '^server_address=127\.0\.0\.1,'
+    replace: 'server_address=0.0.0.0'
+     
+
+ - name: replace allowed host address
+   replace:
+    path: /etc/nagios/nrpe.cfg
+    regexp: '^allowed_hosts=127\.0\.0\.1,'
+    replace: 'allowed_hosts=127.0.0.1,{{server_ip}}'
+   
+
+ - name: copy the  check memory plugin
+   copy: 
+    src: check_mem
+    dest: /usr/lib64/nagios/plugins
+
+ - name: copy checkcpu plugin
+   copy:
+    src: check_mem
+    dest: /usr/lib64/nagios/plugins
+
+ - name: Add check commands to nrpe.cfg
+   blockinfile:
+    path: /etc/nagios/nrpe.cfg
+    insertafter: The\sfollowing\sexamples\suse\shardcoded\scommand\sarguments\.\.\.
+    block: |
+       command[check_http]=/usr/lib64/nagios/plugins/check_http -H localhost
+       command[check_ssh]=/usr/lib64/nagios/plugins/check_ssh
+       command[check_http]=/usr/lib64/nagios/plugins/check_http -H localhost
+       command[check_cpu]=/usr/lib64/nagios/plugins/check_cpu_perf.sh -w 80 -c 90
+       command[memory]=/usr/lib64/nagios/plugins/check_mem -w 80 -c 90
+       command[show_users]=/usr/lib64/nagios/plugins/check_users -w 8 -c 10
+
+    
+ - name: restart nagios-nrpe-client
+   service:
+      name: nrpe
+      state: restarted
+
+ - name: chkconfig nrpe on
+   shell: chkconfig nrpe on
+   when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '6'
+
+ - name: enable nrpe
+   shell: systemctl enable nrpe
+   when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+

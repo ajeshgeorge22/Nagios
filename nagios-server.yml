@@ -1,0 +1,9 @@
+---
+
+- name: ansible-nagios server configuration 
+  hosts: 10.9.0.124
+  become: true
+  roles: 
+    - { role: 'nagios-server-install',tags: 'nagios-server'}
+   
+    

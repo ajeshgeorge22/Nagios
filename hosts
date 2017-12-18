@@ -1,0 +1,5 @@
+[nagios-server]
+xx.xx.xx.xx ansible_connection=ssh  ansible_ssh_user=user  ansible_ssh_pass=password ansible_sudo_user=user ansible_become_pass=password
+
+[nagios-client]
+xx.xx.xx.xx ansible_connection=ssh  ansible_ssh_user=user  ansible_ssh_pass=password ansible_sudo_user=user ansible_become_pass=password

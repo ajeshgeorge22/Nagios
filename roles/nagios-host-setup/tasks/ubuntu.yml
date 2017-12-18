@@ -1,0 +1,22 @@
+---
+
+ - name: copy host template to remote 
+   template:
+    src: host.cfg.j2
+    dest: /usr/local/nagios/etc/objects/{{host_name}}.cfg
+    owner: nagios
+    group: nagcmd
+    mode: 0755
+ 
+ - name: add host cfg file in /usr/local/nagios/etc/nagios.cfg
+   lineinfile:
+    path: /usr/local/nagios/etc/nagios.cfg
+    insertafter: 'Definitions\sfor\smonitoring\sthe\slocal\s(Linux)\shost'
+    line: 'cfg_file=/usr/local/nagios/etc/objects/{{host_name}}.cfg'
+ 
+ - name: restart nagios if configtest pass
+   service:
+    name: nagios
+    state: restarted
+ 
+

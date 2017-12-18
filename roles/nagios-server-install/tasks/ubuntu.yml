@@ -1,0 +1,321 @@
+---
+ #- name: Update apt cache
+ #  apt:
+ #   update_cache: yes
+
+ - name: Install nagios dependencies wget 
+   apt: name=wget  state=latest
+
+ - name: Make sure we can use htpasswd module
+   apt: "pkg=python-passlib state=installed"
+ 
+
+ - name: Install nagios dependencies build-essential
+   apt: name=build-essential  state=latest
+
+ - name: Install nagios dependencies unzip
+   apt: name=unzip  state=latest
+
+ - name: Install nagios dependencies openssl
+   apt: name=openssl  state=latest
+
+ - name: Install nagios dependencies libssl-dev
+   apt: name=libssl-dev  state=latest  
+
+ - name: Install nagios dependencies apache2
+   apt: name=apache2 state=latest
+
+### instal php5 if os version is ubuntu 14
+ - name: Install nagios dependencies php5 in ubuntu 14
+   apt: name=php5 state=latest
+   when: ansible_distribution_version == "14.04"
+   
+ - name: Install nagios dependencies php5-gd in ubuntu 14
+   apt: name=php5-gd state=latest
+   when: ansible_distribution_version == "14.04"
+  
+### install php7 if os version is ubuntu 16
+ - name: Install nagios dependencies php7 in ubuntu 16
+   apt: name=php7.0 state=latest
+   when: ansible_distribution_version == "16.04"
+   
+ - name: Install nagios dependencies libapache2-mod-php in ubuntu 16
+   apt: name=libapache2-mod-php state=latest
+   when: ansible_distribution_version == "16.04" 
+
+ - name: Install nagios dependencies php7-gd in ubuntu 16
+   apt: name=php7.0-gd state=latest
+   when: ansible_distribution_version == "16.04"
+   
+ - name: Install nagios dependencies libgd-dev
+   apt: name=libgd-dev  state=latest
+ 
+ - name: Add usergroup
+   group:
+    name: nagcmd
+    state: present
+
+ - name: Add nagios user with group nagcmd
+   user:
+    name: nagios
+    shell: /bin/bash
+    groups: nagcmd
+    append: yes
+ 
+ - name: Add nagcmd group to www-data
+   user:
+    name: nagcmd
+    shell: /bin/bash
+    groups: www-data
+    append: yes
+
+ - name: Download nagios server
+   get_url:
+    url: https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.3.4.tar.gz
+    dest: /opt/nagios-4.3.4.tar.gz
+    mode: 775
+
+ - name: Extract nagios-4.3.4.tar.gz into /opt/nagios-4.3.4
+   unarchive:
+    src: /opt/nagios-4.3.4.tar.gz
+    dest: /opt
+    copy: no
+
+ - name: Change to /opt/nagios-4.3.4 and run ./configure 
+   shell: ./configure --with-command-group=nagcmd
+   args: 
+    chdir: /opt/nagios-4.3.4
+
+ - name: make    
+   make:
+    chdir: /opt/nagios-4.3.4
+    target: all
+
+ - name: make install
+   make:
+    chdir: /opt/nagios-4.3.4
+    target: install
+
+ - name: make install
+   make:
+    chdir: /opt/nagios-4.3.4
+    target: install-init
+
+ - name: make install
+   make:
+    chdir: /opt/nagios-4.3.4
+    target: install-config
+
+ - name: make install
+   make:
+    chdir: /opt/nagios-4.3.4
+    target: install-commandmode
+ 
+ - name: copy event handlers scripts under libexec directory
+#   copy:
+#    src: /opt/nagios-4.3.4/contrib/eventhandlers
+#    dest: /usr/local/nagios/libexec
+#    recursive: True
+#    owner: nagios
+#    group: nagios
+#    mode: 0755
+   shell: cp -r /opt/nagios-4.3.4/contrib/eventhandlers /usr/local/nagios/libexec
+ 
+ - name: copy nagios.conf to /etc/apache2/conf-available/nagios.conf
+   copy:
+    src: nagios.conf
+    dest: /etc/apache2/conf-available/nagios.conf
+    owner: www-data
+    group: www-data
+    mode: 755
+ 
+ - name: copy nagios to /etc/init.d/nagios
+   copy:
+    src: nagios
+    dest: /etc/init.d/nagios
+    owner: nagios
+    group: nagios
+    mode: 755
+ 
+ - name: create apache authentication for user nagiosadmin. 
+   htpasswd:
+    path: /usr/local/nagios/etc/htpasswd.users
+    create: yes
+    name: nagiosadmin
+    password: 'nagios'
+    owner: root
+    group: www-data
+    mode: 0640
+    crypt_scheme: md5_crypt
+
+ - name: enable nagios conf file 
+   shell: a2enconf nagios.conf
+ 
+ - name: disable mpm_event
+   apache2_module:
+    state: absent
+    name: mpm_event
+    ignore_configcheck: True
+    force: true
+
+ - name: enable mpm_prefork
+   apache2_module:
+    state: present
+    name: mpm_prefork
+    ignore_configcheck: True
+    force: true
+ 
+ - name: restart apache2
+   service:
+    name: apache2
+    state: restarted
+ 
+ - name: enable cgi
+   apache2_module:
+    state: present
+    name: cgi
+
+ - name: enable rewrite
+   apache2_module:
+    state: present
+    name: rewrite
+ 
+ - name: restart apache2
+   service:
+    name: apache2
+    state: restarted
+
+ - name: Download nagios plugins
+   get_url:
+    url: http://www.nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+    dest: /opt/nagios-plugins-2.2.1.tar.gz
+    mode: 775
+ 
+ - name: Extract nagios-plugins-2.2.1.tar.gz into /opt/nagios-plugins-2.2.1
+   unarchive:
+    src: /opt/nagios-plugins-2.2.1.tar.gz
+    dest: /opt
+    copy: no
+ 
+ - name: Change to /opt/nagios-plugins-2.2.1 and run ./configure 
+   shell: ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl 
+   args: 
+    chdir: /opt/nagios-plugins-2.2.1
+
+ - name: make nagios-plugins  
+   make:
+    chdir: /opt/nagios-plugins-2.2.1
+    target: all
+
+ - name: make install nagios-plugins
+   make:
+    chdir: /opt/nagios-plugins-2.2.1
+    target: install
+ 
+ - name: restart apache2
+   service:
+    name: apache2
+    state: restarted
+ 
+ - name: restart nagios
+   service:
+    name: nagios
+    state: restarted
+
+ - name: configure Nagios to auto start on system boot
+   shell: systemctl enable nagios
+
+ - name: Ensure postfix is installed (RedHat).
+   yum: name=postfix state=installed
+   when: ansible_os_family == 'RedHat'
+
+ - name: Ensure postfix is installed (Debian).
+   apt: name=postfix state=installed
+   when: ansible_os_family == 'Debian'
+
+ - name: install  mailutils
+   apt:
+    name:  mailutils
+    state: installed
+
+ - name: ensure postfix is started and enabled at boot
+   service: 
+    name: postfix 
+    state: started 
+    enabled: yes
+
+ - name: replace inet_interfaces in postfix conf file
+   replace:
+     path: /etc/postfix/main.cf
+     regexp: '^inet_interfaces\s=\sall'
+     replace: 'inet_interfaces = loopback-only'
+     backup: yes
+
+ - name: replace nagios admin email id in /usr/local/nagios/etc/objects/contacts.cfg
+   replace:
+     path: /usr/local/nagios/etc/objects/contacts.cfg
+     regexp: '^nagios@localhost'
+     replace: '{{admin_mail}}'
+     backup: yes
+
+ - name: Add NRPE command to command.cfg 
+   blockinfile:
+    path: /usr/local/nagios/etc/objects/commands.cfg
+    insertafter: EOF
+    block: |
+      define command{
+                     command_name check_nrpe
+                     command_line $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$
+                    }
+
+ - name: give full permission to nagios.cmd
+   file:
+    path: /usr/local/nagios/var/rw/nagios.cmd
+    owner: nagios
+    group: nagcmd
+    mode: 0777
+
+ - name: install check_nrpe plugin
+   apt:
+    name: nagios-nrpe-plugin
+    state: installed
+
+
+
+ - name: copy check_nrpe plugin to /usr/local/nagios/libexec/
+   copy:
+    src: check_nrpe
+    dest: /usr/local/nagios/libexec/check_nrpe
+    owner: nagios
+    group: nagcmd
+    mode: 0755
+
+ - name: add libapache2-mod-php to source list
+   lineinfile:
+    path: /etc/apt/sources.list
+    insertafter: EOF
+    line: 'deb http://security.ubuntu.com/ubuntu xenial-security main'
+
+ - name: Update apt cache
+   apt:
+    update_cache: yes
+    
+ - name: install libapache2-mod-php
+   apt:
+    name: libapache2-mod-php
+    state: installed
+
+ - name: change the mail configurations
+   replace:
+     path: /usr/local/nagios/etc/objects/commands.cfg
+     regexp: '^\/bin\/mail'
+     replace: '/usr/bin/mail'
+     backup: yes
+
+
+
+ - name: restart nagios
+   service:
+    name: nagios
+    state: restarted
+

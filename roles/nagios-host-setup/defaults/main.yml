@@ -1,0 +1,5 @@
+---
+ host_name: hostname
+ ip_address: XX.XX.XX.XX 
+ contact_group: admins
+

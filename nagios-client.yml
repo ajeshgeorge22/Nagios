@@ -1,0 +1,9 @@
+---
+
+- name: ansible-nagios client configuration 
+  hosts: nagios-client
+  become: true
+  roles: 
+    - { role: 'nagios-client-install',tags: 'nagios-client'}
+   
+    

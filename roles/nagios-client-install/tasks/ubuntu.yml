@@ -1,0 +1,54 @@
+---
+ #- name: Update apt cache
+ #  apt:
+ #   update_cache: yes
+
+ - name: Install nagios-client 
+   apt: name=nagios-nrpe-server  state=latest
+   
+ - name: Install nagios-plugins
+   apt: name=nagios-plugins state=latest
+ 
+ - name: replace server address 
+   replace:
+    path: /etc/nagios/nrpe.cfg
+    regexp: '^server_address=127\.0\.0\.1,'
+    replace: 'server_address=0.0.0.0'
+     
+
+ - name: replace allowed host address
+   replace:
+    path: /etc/nagios/nrpe.cfg
+    regexp: '^allowed_hosts=127\.0\.0\.1,'
+    replace: 'allowed_hosts=127.0.0.1,{{server_ip}}'
+   
+
+ - name: copy the  check memory plugin
+   copy: 
+    src: check_mem
+    dest: /usr/lib/nagios/plugins
+    mode: a+x
+
+ - name: copy checkcpu plugin
+   copy:
+    src: check_mem
+    dest: /usr/lib/nagios/plugins
+    mode: a+x
+
+ - name: Add check http to nrpe.cfg
+   blockinfile:
+    path: /etc/nagios/nrpe.cfg
+    insertafter: 'The\sfollowing\sexamples\suse\shardcoded\scommand\sarguments\.\.\.'
+    block: |
+      command[check_http]=/usr/lib/nagios/plugins/check_http -H localhost
+      command[check_ssh]=/usr/lib/nagios/plugins/check_ssh
+      command[check_http]=/usr/lib/nagios/plugins/check_http -H localhost
+      command[check_cpu]=/usr/lib/nagios/plugins/check_cpu_perf.sh -w 80 -c 90
+      command[memory]=/usr/lib/nagios/plugins/check_mem -w 80 -c 90
+      command[show_users]=/usr/lib/nagios/plugins/check_users -w 8 -c 10
+
+    
+ - name: restart nagios-nrpe-client
+   service:
+      name: nagios-nrpe-server
+      state: restarted

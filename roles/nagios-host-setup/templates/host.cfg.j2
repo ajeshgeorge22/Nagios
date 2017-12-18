@@ -1,0 +1,95 @@
+define host{
+        use                     linux-server,host-pnp          ; Name of host template to use
+        check_period            24x7            ; By default, Linux hosts are checked round the clock
+        check_interval          5               ; Actively check the host every 5 minutes
+        retry_interval          1               ; Schedule host check retries at 1 minute intervals
+        max_check_attempts      10              ; Check each Linux host 10 times (max)
+        check_command           check-host-alive ; Default command to check Linux hosts
+        host_name               {{host_name}}
+        alias                   {{host_name}}
+        address                 {{ip_address}}
+        notification_options    d,u,r           ; Only send notifications for specific host states
+        contact_groups          {{contact_group}}
+	icon_image         Amazon.png
+#	statusmap_image    Amazon.gd2
+	}
+
+# SERVICE DEFINITIONS
+
+define service{
+        use                     generic-service,srv-pnp 
+        host_name               {{host_name}}
+        service_description     /dev/xvda1 Free Space
+        check_command           check_nrpe!check_hda1
+        }
+
+
+define service{
+          use                   generic-service,srv-pnp 
+          host_name             {{host_name}}
+          service_description   Current Users
+          check_command         check_nrpe!check_users
+        }
+
+define service{
+        use                     generic-service,srv-pnp          ; Name of service template to use
+        host_name               {{host_name}}
+        service_description     Total Processes
+        check_command           check_nrpe!check_total_procs
+        }
+
+define service{
+        use                     generic-service,srv-pnp          ; Name of service template to use
+        host_name               {{host_name}}
+        service_description     Current Load
+        check_command           check_nrpe!check_load
+        }
+
+#define service{
+#       use                      local-service         ; Name of service template to use
+#       host_name                {{host_name}}
+#       service_description      SSH
+#       check_command            check_ssh
+#        }
+
+define service{
+        use                     generic-service,srv-pnp          ; Name of service template to use
+        host_name               {{host_name}}
+        service_description     HTTP
+        check_command           check_nrpe!check_http
+
+        }
+
+define service{
+        use                   generic-service,srv-pnp 
+        host_name             {{host_name}}
+        service_description   Zombie Processes
+        check_command         check_nrpe!check_zombie_procs
+        }
+
+define service{
+	use 			generic-service,srv-pnp 
+	host_name 		{{host_name}}
+	service_description 	Logged Users
+	check_command 		check_nrpe!show_users
+	}
+
+#define  service{
+ #       use                     generic-service,srv-pnp 
+  #      host_name               {{host_name}}
+  #      service_description     MySQL Status
+   #     check_command           check_mysql
+   #     }
+
+#define service{ 
+#	use 			generic-service,srv-pnp 
+#	host_name		{{host_name}} 
+#	service_description	Memory Usage 
+#	check_command 		check_nrpe_memory 
+#	}
+define service {
+	use                     generic-service,srv-pnp 
+	host_name               {{host_name}}
+	service_description     CPU Statistics
+	check_command		check_nrpe!check_cpu
+	}
