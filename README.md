@@ -10,6 +10,7 @@
 4. The nagios server will be configured in the specifed server and the  console will be available at http://ip/nagios
 
 # Step to setup nagios client
+# OS: Support in Centos and Ubuntu
 # Two roles are used for configuring client and setup the client data in nagios server
 1. Add the client ip address and ssh user and password. Also for root permission give sudo  user and password.
 2. Add the nagios server IP in nagios-client-install/defaults/main.yml
